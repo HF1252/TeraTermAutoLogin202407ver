@@ -1,0 +1,89 @@
+Sub TeraTermlogin()
+
+'参照先はアクティブシート
+Set teraterm_sheet = ActiveSheet
+
+'変数一覧
+Dim sTtlPath    As String '「ttpmacro.exe」の格納先Pathを設定
+Dim sTtlFile    As String ' 実行する「TTL」ファイルを設定
+Dim sCmdFile    As String ' 実行する「CMD」ファイルを設定
+Dim sHodtAddr   As String '「IPアドレス」を指定
+Dim sHostName   As String '「ホスト名」を設定
+Dim sUser       As String '「UID名」を設定
+Dim sPass       As String '「ログインPW」を設定
+Dim sPrivateKey As String ' 秘密鍵のパスを設定
+'Dim sRootPass   As String '「rootPW」を設定
+
+' 秘密鍵のPathを指定
+sPrivateKey = teraterm_sheet.Cells(3, 14)
+
+'「ttpmacro.exe」の格納先Pathを指定
+sTtl_Path = "C:\Program Files (x86)\teraterm5"
+sHodtAddr = teraterm_sheet.Cells(3, 9)
+sHostName = teraterm_sheet.Cells(3, 10)
+sUser = teraterm_sheet.Cells(3, 11)
+sPass = teraterm_sheet.Cells(3, 12)
+sRootPass = teraterm_sheet.Cells(3, 13)
+
+'コマンドファイル名の設定
+sCmd_File = ThisWorkbook.Path & "\sample_command.cmd"
+
+'TTLファイル名の設定
+sTtl_File = ThisWorkbook.Path & "\sample_tterm.ttl"
+
+'TTLファイルの生成
+'シェルを実行するマクロを生成
+n = FreeFile
+Open sTtl_File For Output As #n
+
+Print #n, "getdir Dir"
+
+'接続情報
+Print #n, "HOSTADDR ='" & sHodtAddr & "'"
+Print #n, "USERNAME ='" & sUser & "'"
+Print #n, "PASSWORD ='" & sPass & "'"
+Print #n, "HOSTNAME ='" & sHostName & "'"
+
+'接続オプション
+Print #n, "Command = HOSTADDR"
+Print #n, "strconcat COMMAND ':22 /ssh /2 /auth=password /user='"
+Print #n, "strconcat COMMAND USERNAME"
+Print #n, "strconcat COMMAND ' /passwd='"
+Print #n, "strconcat COMMAND PASSWORD"
+
+' 接続オプションに秘密鍵を指定
+Print #n, "strconcat COMMAND ' /auth=publickey /keyfile=" & sPrivateKey & "'"
+
+'接続
+Print #n, "Connect Command"
+
+'コマンド実行
+Print #n, "Wait ' $'"
+'Print #n, "sendln ' su -'"
+'Print #n, "Wait 'パスワード:'"
+'Print #n, "sendln '" & sRootPass & "'"
+Print #n, "End"
+Close #n
+
+'コマンドファイルを生成
+'TeraTermMacroをキックする「.bat」を生成
+n = FreeFile
+Open sCmd_File For Output As #n
+
+'下記から「.bat」の記述
+Print #n, "@ECHO OFF"
+Print #n, "SET TTPMACRO=""" & sTtl_Path & """"
+Print #n, "SET LOGINTTL=""" & sTtl_File & """"
+Print #n, "START /WAIT /D%TTPMACRO% ttpmacro.exe /V %LOGINTTL%"
+Print #n, "DEL """ & sCmd_File & """ """ & sTtl_File & """"
+Close #n
+makeCommand = True
+
+'コマンド実行
+'「.bat」を実行しTeraTermMacroを起動する
+Set oShell = CreateObject("WScript.Shell")
+oShell.Run """" & sCmd_File & """", , True
+
+Set oShell = Nothing
+
+End Sub
